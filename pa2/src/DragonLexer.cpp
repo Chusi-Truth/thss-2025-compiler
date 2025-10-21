@@ -2,6 +2,7 @@
 #include "Token.hpp"
 #include <cctype>
 #include <string>
+#include <iostream>
 
 DragonLexer::DragonLexer(const std::string &input)
     : Lexer(input) {}
@@ -11,6 +12,10 @@ Token DragonLexer::nextToken()
   if (peek == EOF_CHAR)
   {
     return Token(TokenType::EOF_T, "EOF", line);
+  }
+  if (peek == '\n')
+  {
+    advance();
   }
 
   if (std::isspace(peek))
@@ -74,10 +79,42 @@ Token DragonLexer::nextToken()
   case '.':
     advance();
     return Token(TokenType::DOT, ".", line);
+  case '=':
+    advance();
+    return Token(TokenType::EQ, "=", line);
+  case '<':
+    advance();
+    if (peek == '=')
+    {
+      advance();
+      return Token(TokenType::LE, "<=", line);
+    }
+    else if (peek == '>')
+    {
+      advance();
+      return Token(TokenType::NE, "<>", line);
+    }
+    return Token(TokenType::LT, "<", line);
+  case '>':
+    advance();
+    if (peek == '=')
+    {
+      advance();
+      return Token(TokenType::GE, ">=", line);
+    }
+    return Token(TokenType::GT, ">", line);
+  case '\'':
+    advance();
+    return Token(TokenType::SQUOTE, "'", line);
+  case EOF_CHAR:
+    return Token(TokenType::EOF_T, "EOF", line);
   default:
     char ch = static_cast<char>(peek);
+    if (peek == EOF_CHAR)
+      return Token(TokenType::EOF_T, "EOF", line);
     std::string s(1, ch);
     advance();
+
     return Token(TokenType::UNKNOWN, s, line);
   }
 }
@@ -90,6 +127,7 @@ Token DragonLexer::WS()
   while (std::isspace(peek))
   {
     ws += static_cast<char>(peek);
+    advance();
   }
   return Token(TokenType::WS, ws, start_line);
 }
@@ -103,45 +141,100 @@ Token DragonLexer::ID()
   {
     id += static_cast<char>(peek);
     advance();
-    if (id == "if")
-      return Token(TokenType::IF, "if", line);
-    if (id == "else")
-      return Token(TokenType::ELSE, "else", line);
   }
-  //not if or else
-  return Token(TokenType::ID,id,line);
+  if (id == "if")
+    return Token(TokenType::IF, "if", line);
+  if (id == "else")
+    return Token(TokenType::ELSE, "else", line);
+  // not if or else
+  return Token(TokenType::ID, id, line);
 }
 
 Token DragonLexer::NUMBER()
 {
-  // TODO: finish me. The NUMBER() method should consume an integer, real number, or scientific notation number.
+    std::string buffer;
+    // 初始类型假定为 INT
+    TokenType type = TokenType::INT;
 
+    // 1. 解析所有数字的共同前缀（整数部分）
+    buffer += FIND_DIGITS();
+
+    // 2. 预读（Lookahead）来判断是否为 REAL
+    // 检查当前是否是 '.' 并且 '.' 后面紧跟着一个数字
+    if (peek == '.' && pos + 1 < input.length() && std::isdigit(input[pos + 1]))
+    {
+        type = TokenType::REAL; // 一旦满足条件，类型就升级为 REAL
+        buffer += static_cast<char>(peek);
+        advance(); // 确认安全后，消耗 '.'
+        buffer += FIND_DIGITS(); // 消耗小数部分
+    }
+
+    // 3. 预读来判断是否为 SCI
+    if (peek == 'e' || peek == 'E')
+    {
+        // 检查 'E' 后面是否跟着一个合法的指数部分
+        size_t lookahead_pos = pos + 1;
+        if (lookahead_pos < input.length() && (input[lookahead_pos] == '+' || input[lookahead_pos] == '-')) {
+            lookahead_pos++; // 跳过符号
+        }
+
+        // 如果符号后面（或E后面）是数字，则这是一个合法的科学记数法
+        if (lookahead_pos < input.length() && std::isdigit(input[lookahead_pos]))
+        {
+            type = TokenType::SCI; // 类型升级为 SCI
+            buffer += static_cast<char>(peek);
+            advance(); // 消耗 'E' 或 'e'
+
+            if (peek == '+' || peek == '-')
+            {
+                buffer += static_cast<char>(peek);
+                advance(); // 消耗 '+' 或 '-'
+            }
+            buffer += FIND_DIGITS(); // 消耗指数部分的数字
+        }
+    }
+
+    return Token(type, buffer, line);
 }
 
 std::string DragonLexer::FIND_DIGITS()
 {
   std::string digits;
-  int accept_squote=2;
-  //note: 2 means ' is acceptable, 1 means ' is not acceptable 0 means illgal
-  while((std::isdigit(peek)||static_cast<char>(peek)=='\'')&&accept_squote)
+  if (!std::isdigit(peek))
   {
-    char digit=static_cast<char>(peek);
-    digits+=digit;
-    if(digit=='\'') accept_squote--;
-    else{
-      accept_squote=std::min(2,accept_squote+1);
+    return ""; 
+  }
+
+  digits += static_cast<char>(peek);
+  advance();
+
+  while (true)
+  {
+    if (peek == '\'')
+    {
+
+      if (std::isdigit(input[pos + 1]))
+      {
+
+        digits += '\'';
+        advance();
+        digits += static_cast<char>(peek);
+        advance();
+
+        break;
+      }
     }
-    advance();
+    else if (std::isdigit(peek))
+    {
+
+      digits += static_cast<char>(peek);
+      advance();
+    }
+    else
+    {
+
+      break;
+    }
   }
-  //calculate offset: digits must not end with '
-  int offset =0;
-  //actually, offset = 2-accept_squote
-  while(!digits.empty()&&digits.back()=='\'') 
-  {
-    digits.pop_back();
-    offset++;
-  }
-  if(offset>0)  resetPos(pos-offset);
   return digits;
-  //set new position
 }

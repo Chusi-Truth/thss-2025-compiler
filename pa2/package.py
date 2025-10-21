@@ -1,24 +1,30 @@
 import os
 import zipfile
 
-def zip_directory(zipf, directory):
-    for root, _, files in os.walk(directory):
-        for file in files:
-            file_path = os.path.join(root, file)
-            zipf.write(file_path)  # 自动保留相对路径
+# 只包含 src/ 下的源码文件和 CMakeLists.txt
+INCLUDE_DIRS = ["src"]
+INCLUDE_FILES = ["CMakeLists.txt"]
 
-def main():
-    # 检查必要文件
-    if not (os.path.isdir("src") and os.path.isfile("CMakeLists.txt")):
-        print("错误：缺少 src 目录或 CMakeLists.txt 文件")
-        return
+def zip_project(zip_name="project.zip"):
+    with zipfile.ZipFile(zip_name, "w", zipfile.ZIP_DEFLATED) as zipf:
+        # 打包目录
+        for directory in INCLUDE_DIRS:
+            for root, dirs, files in os.walk(directory):
+                # 排除隐藏目录
+                dirs[:] = [d for d in dirs if not d.startswith(".")]
+                for file in files:
+                    if file.startswith("."):
+                        continue
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, start=os.path.dirname(directory))
+                    zipf.write(file_path, arcname)
 
-    # 创建压缩包
-    with zipfile.ZipFile("project.zip", "w", zipfile.ZIP_DEFLATED) as zipf:
-        zip_directory(zipf, "src")
-        zipf.write("CMakeLists.txt")
+        # 打包单独文件
+        for file in INCLUDE_FILES:
+            if os.path.isfile(file):
+                zipf.write(file, file)
 
-    print("已生成压缩包：project.zip")
+    print(f"已生成压缩包：{zip_name}")
 
 if __name__ == "__main__":
-    main()
+    zip_project()

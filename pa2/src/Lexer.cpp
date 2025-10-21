@@ -17,7 +17,9 @@ Lexer::Lexer(const std::string &input)
 void Lexer::advance()
 {
   if (peek == '\n')
+  {
     ++line;
+  }
   // TODO: finish me. The advance() method moves the pointer 'pos' forward by one position.
   // When the end of the string is reached, set 'peek' to EOF_CHAR.
   // You should use static_cast<unsigned char> to ensure 'peek' stores an unsigned char value.
@@ -41,6 +43,7 @@ void Lexer::resetPos(int newPos)
     {
         pos = newPos;
         peek = static_cast<unsigned char>(input[pos]);
+        
     }
     else
     {
