@@ -152,57 +152,56 @@ Token DragonLexer::ID()
 
 Token DragonLexer::NUMBER()
 {
-    std::string buffer;
-    // 初始类型假定为 INT
-    TokenType type = TokenType::INT;
+  // use pre-read instead of revert
+  std::string buffer;
 
-    // 1. 解析所有数字的共同前缀（整数部分）
+  TokenType type = TokenType::INT;
+
+  buffer += FIND_DIGITS();
+  //check if is real number
+  if (peek == '.' && pos + 1 < input.length() && std::isdigit(input[pos + 1]))
+  {
+    type = TokenType::REAL;
+    buffer += static_cast<char>(peek);
+    advance();
     buffer += FIND_DIGITS();
+  }
 
-    // 2. 预读（Lookahead）来判断是否为 REAL
-    // 检查当前是否是 '.' 并且 '.' 后面紧跟着一个数字
-    if (peek == '.' && pos + 1 < input.length() && std::isdigit(input[pos + 1]))
+  // check if is sci number
+  if (peek == 'e' || peek == 'E')
+  {
+
+    size_t lookahead_pos = pos + 1;
+    if (lookahead_pos < input.length() && (input[lookahead_pos] == '+' || input[lookahead_pos] == '-'))
     {
-        type = TokenType::REAL; // 一旦满足条件，类型就升级为 REAL
+      lookahead_pos++;
+    }
+
+    if (lookahead_pos < input.length() && std::isdigit(input[lookahead_pos]))
+    {
+      type = TokenType::SCI;
+      buffer += static_cast<char>(peek);
+      advance();
+
+      if (peek == '+' || peek == '-')
+      {
         buffer += static_cast<char>(peek);
-        advance(); // 确认安全后，消耗 '.'
-        buffer += FIND_DIGITS(); // 消耗小数部分
+        advance();
+      }
+      buffer += FIND_DIGITS();
     }
+  }
 
-    // 3. 预读来判断是否为 SCI
-    if (peek == 'e' || peek == 'E')
-    {
-        // 检查 'E' 后面是否跟着一个合法的指数部分
-        size_t lookahead_pos = pos + 1;
-        if (lookahead_pos < input.length() && (input[lookahead_pos] == '+' || input[lookahead_pos] == '-')) {
-            lookahead_pos++; // 跳过符号
-        }
-
-        // 如果符号后面（或E后面）是数字，则这是一个合法的科学记数法
-        if (lookahead_pos < input.length() && std::isdigit(input[lookahead_pos]))
-        {
-            type = TokenType::SCI; // 类型升级为 SCI
-            buffer += static_cast<char>(peek);
-            advance(); // 消耗 'E' 或 'e'
-
-            if (peek == '+' || peek == '-')
-            {
-                buffer += static_cast<char>(peek);
-                advance(); // 消耗 '+' 或 '-'
-            }
-            buffer += FIND_DIGITS(); // 消耗指数部分的数字
-        }
-    }
-
-    return Token(type, buffer, line);
+  return Token(type, buffer, line);
 }
 
 std::string DragonLexer::FIND_DIGITS()
 {
   std::string digits;
+  // not start with a digit, return
   if (!std::isdigit(peek))
   {
-    return ""; 
+    return "";
   }
 
   digits += static_cast<char>(peek);
@@ -210,6 +209,7 @@ std::string DragonLexer::FIND_DIGITS()
 
   while (true)
   {
+    // check if a digit is after '
     if (peek == '\'')
     {
 
@@ -220,7 +220,9 @@ std::string DragonLexer::FIND_DIGITS()
         advance();
         digits += static_cast<char>(peek);
         advance();
-
+      }
+      else
+      {
         break;
       }
     }
