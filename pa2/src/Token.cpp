@@ -30,9 +30,11 @@ std::string tokenTypeToString(TokenType t) {
     {TokenType::MINUS, "MINUS"},
     {TokenType::MUL, "MUL"},
     {TokenType::DIV, "DIV"},
-    {TokenType::DOT, "DOT"}
-    // TODO: add more token types
+    {TokenType::DOT, "DOT"},
+    {TokenType::SQUOTE,"SQUOTE"}
+    //TODO: add more token types
   };
+  //note: use a map, easy to modify, I need to add '
   auto it = names.find(t);
   if (it != names.end()) return it->second;
   return "UNK";

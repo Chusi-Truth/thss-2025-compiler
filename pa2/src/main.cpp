@@ -7,7 +7,7 @@ int main() {
   std::ostringstream ss;
   ss << std::cin.rdbuf();
   std::string input = ss.str();
-
+  //NOTE: main get and print tokens through nextToken
   DragonLexer lexer(input);
   while (true) {
     Token t = lexer.nextToken();

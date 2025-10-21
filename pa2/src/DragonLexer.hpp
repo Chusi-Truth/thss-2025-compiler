@@ -13,4 +13,5 @@ private:
   Token WS();
   Token ID();
   Token NUMBER(); // handles INT/REAL/SCI
+  std::string FIND_DIGITS();
 };
