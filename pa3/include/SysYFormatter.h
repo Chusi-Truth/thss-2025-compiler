@@ -68,11 +68,14 @@ public:
 
     virtual std::any visitConstExp(SysYParser::ConstExpContext *ctx) override;
 
-private:
     // 当前缩进层级（
     int indent = 0;
     // 是否已输出过第一个函数，用于在函数之间插入空行
     bool firstFunctionSeen = false;
+
+    //帮助判断KR风格
+    bool follow=false;
+
 
     // 返回当前缩进字符串
     std::string indentStr() const;
